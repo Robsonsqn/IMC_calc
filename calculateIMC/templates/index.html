@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Django Formulário</title>
+
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        form {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto; 
+        }
+
+        input {
+            width: calc(100% - 20px); 
+            padding: 10px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #dadosExibicao {
+            display: none;
+            background-color: #fff9e5; 
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto; 
+        }
+
+        #dadosExibicao p {
+            margin: 5px 0; 
+        }
+
+        /* Estilo para o input de e-mail */
+        .inputEstilizado {
+            width: calc(100% - 20px); /* Diminui a largura total com alguma margem */
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: inline-block; /* Impede que o botão fique na mesma linha */
+        }
+
+        /* Estilo para o botão de enviar e-mail */
+        .botaoEstilizado {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block; /* Impede que o botão fique na mesma linha */
+        }
+
+        .botaoEstilizado:hover {
+            background-color: #45a049;
+        }
+
+
+        @media screen and (max-width: 600px) {
+            form {
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+        <form id="dataForm" method="post" action="{% url 'process_data' %}">
+            {% csrf_token %}
+            <label for="altura">Altura:</label>
+            <input type="text" name="altura" id="altura" required><br>
+            
+            <label for="peso">Peso:</label>
+            <input type="text" name="peso" id="peso" required><br>
+
+            <button type="submit">OK</button>
+        </form>
+
+        <div id="dadosExibicao">
+            <p id="alturaExibicao"></p>
+            <p id="pesoExibicao"></p>
+            <label for="email">Email:</label>
+            <input type="text" name="email" id="email" class="inputEstilizado">
+            <button onclick="enviarEmail()" class="botaoEstilizado">Enviar E-mail</button>
+        </div>
+        
+
+    <script>
+        document.getElementById('dataForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            var altura = document.getElementById('altura').value;
+            var peso = document.getElementById('peso').value;
+
+            fetch('{% url "process_data" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
+                },
+                body: 'altura=' + altura + '&peso=' + peso,
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Erro ao processar os dados');
+                }
+            })
+            .then(data => {
+                document.getElementById('alturaExibicao').innerText = 'IMC: ' + data.IMC;
+                document.getElementById('pesoExibicao').innerText = 'Categoria: ' + data.Categoria;
+
+                document.getElementById('dadosExibicao').style.display = 'block';
+            })
+            .catch(error => {
+                console.error(error);
+                // Lógica para lidar com erros, se necessário
+            });
+        });
+
+        // Função para enviar e-mail
+        function enviarEmail() {
+            var imc = document.getElementById('alturaExibicao').innerText;
+            var categoria = document.getElementById('pesoExibicao').innerText;
+
+            var corpoEmail = altura + '\n' + peso;
+            var email = document.getElementById('email').value;
+            fetch('{% url "enviar_email" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
+                },
+                body: 
+                    'IMC=' + imc.replace('IMC: ','')+
+                    '&Categoria='+categoria.replace('Categoria: ','')+
+                    '&destinatario='+email,
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('E-mail enviado com sucesso!');
+                } else {
+                    alert('Erro ao enviar o e-mail');
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                alert('Erro ao enviar o e-mail');
+            });
+        }
+    </script>
+</body>
+</html>
